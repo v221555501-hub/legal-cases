@@ -1,0 +1,1188 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="法務案件">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>法務案件管理</title>
+<style>
+/* 版面：上方工具列＋分頁，主區為表格或卷宗式單頁；列印時只印主區 */
+:root{
+  --ink:#16243a;        /* 主文字、深色 */
+  --navy:#1f3a5f;       /* 品牌深藍 */
+  --accent:#2f6fb0;     /* 互動藍 */
+  --paper:#f5f7fa;      /* 背景 */
+  --card:#ffffff;
+  --line:#d6dde6;
+  --muted:#5d6b7c;
+  --soft:#e9eef5;
+  --red:#b42318; --red-bg:#fdecea;
+  --amber:#8a5a00; --amber-bg:#fff3d6;
+  --green:#1f7a4d; --green-bg:#e6f4ec;
+  --grey-bg:#eceff3;
+  --font:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",sans-serif;
+  --mono:"Consolas","Menlo",monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding-top:env(safe-area-inset-top,0px)}
+.bar-in{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding:10px max(20px,env(safe-area-inset-right,0px)) 10px max(20px,env(safe-area-inset-left,0px))}
+.brand{font-weight:700;font-size:17px;letter-spacing:.06em;white-space:nowrap}
+.brand small{font-weight:400;opacity:.7;margin-left:8px;font-size:12px;letter-spacing:0}
+.filestat{font-size:12px;opacity:.85;display:flex;align-items:center;gap:6px;min-width:0}
+.dot{width:8px;height:8px;border-radius:50%;background:#7bd389;flex:none}
+.dot.busy{background:#ffd166}.dot.off{background:#ff8a80}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:6px 12px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{background:#245d97}
+.btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.btn.ghost:hover{border-color:#fff}
+.btn.danger{color:var(--red);border-color:#f0b4ad}
+.btn.sm{padding:3px 9px;font-size:12px}
+.tabs{display:flex;gap:2px;padding:0 max(20px,env(safe-area-inset-right,0px)) 0 max(20px,env(safe-area-inset-left,0px));overflow-x:auto}
+.tab{background:transparent;border:0;color:rgba(255,255,255,.75);padding:9px 16px;border-radius:6px 6px 0 0;white-space:nowrap}
+.tab[aria-selected=true]{background:var(--paper);color:var(--ink);font-weight:700}
+.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;margin-left:6px;text-align:center}
+
+main{padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));max-width:1500px;margin:0 auto}
+h2{font-size:20px;margin:0 0 4px}
+h3{font-size:15px;margin:0 0 10px;color:var(--navy)}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+.view[hidden]{display:none!important}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters input,.filters select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--card)}
+.filters input[type=search]{min-width:240px;flex:1;max-width:420px}
+.count{color:var(--muted);font-size:12.5px;margin-left:auto}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--soft);font-size:12.5px;color:var(--navy);white-space:nowrap;position:sticky;top:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f2f6fb}
+td.code{white-space:nowrap;font-weight:700}
+td.clip{max-width:340px}
+.clip3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+td.r,th.r{text-align:right}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;white-space:nowrap;font-weight:600}
+.p-over{background:var(--red-bg);color:var(--red)}
+.p-soon{background:var(--amber-bg);color:var(--amber)}
+.p-ok{background:var(--green-bg);color:var(--green)}
+.p-none{background:var(--soft);color:var(--muted)}
+.p-closed{background:var(--grey-bg);color:#6b7280}
+tr.closed td{color:#7b8794}
+
+/* reminders */
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.sum b{display:block;font-size:26px;line-height:1.2}
+.sum span{font-size:12.5px;color:var(--muted)}
+.sum .s-over{border-left:4px solid var(--red)}
+.sum .s-soon{border-left:4px solid #e0a100}
+.group{margin-bottom:20px}
+details.group>summary{cursor:pointer;list-style:none}
+details.group>summary::-webkit-details-marker{display:none}
+details.group>summary h3::before{content:"▸ ";color:var(--muted)}
+details.group[open]>summary h3::before{content:"▾ "}
+
+/* case detail */
+.case-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}
+.case-code{font-size:26px;font-weight:700;letter-spacing:.04em}
+.case-type{color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+.fields .full{grid-column:1/-1}
+.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff}
+.f textarea{resize:vertical;min-height:64px}
+.f input[readonly]{background:var(--soft)}
+.f .row{display:flex;gap:6px}
+.f .row input{flex:1;min-width:0}
+.money input{text-align:right;font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:16px}
+.branches a{margin-right:10px}
+
+.rec-form{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 150px;gap:10px;align-items:end}
+.rec-form .acts{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+.timeline{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.rec{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.rec-top{display:flex;gap:10px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.rec-date{font-weight:700}
+.rec-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.rec-cols h4{margin:0 0 2px;font-size:11.5px;color:var(--muted);font-weight:600}
+.rec-cols p{margin:0;white-space:pre-wrap;word-break:break-word}
+.rec .tools{margin-left:auto;display:flex;gap:6px}
+
+/* stats */
+.stats-grid{display:flex;flex-direction:column;gap:20px}
+.bar-cell{position:relative;min-width:120px}
+.bar-cell i{position:absolute;left:0;top:50%;height:8px;margin-top:-4px;background:#c9d8ea;border-radius:4px}
+.bar-cell span{position:relative}
+tfoot td{font-weight:700;background:var(--soft)}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+
+/* settings */
+.set-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.mini td,.mini th{padding:5px 8px}
+.mini input{width:100%;border:1px solid var(--line);border-radius:5px;padding:4px 6px}
+.mini tbody tr{cursor:default}
+
+/* welcome & dialogs */
+.cover{position:fixed;inset:0;background:rgba(22,36,58,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.dialog{background:var(--card);border-radius:10px;max-width:560px;width:100%;padding:22px 24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.dialog h2{margin-bottom:8px}
+.dialog p{margin:6px 0}
+.dialog .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.welcome-steps{margin:10px 0 0;padding-left:20px;color:var(--muted);font-size:13px}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;z-index:60;opacity:0;transform:translateY(8px);transition:.2s}
+.toast.show{opacity:1;transform:none}
+.print-only{display:none}
+
+@media (max-width:700px){
+  main{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+  .bar-in{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+  .tabs{padding-left:max(8px,env(safe-area-inset-left,0px))}
+  .brand small,.filestat span:last-child{font-size:11px}
+  .bar .spacer{display:none}
+  .bar-in .btn{padding:5px 9px;font-size:13px}
+  .filters input[type=search]{min-width:0;max-width:none;flex:1 1 100%}
+  .cards td[data-l]:empty{display:none}
+  .filters select{flex:1 1 40%}
+  .count{margin-left:0}
+  .cards table,.cards thead{display:block}
+  .cards thead{display:none}
+  .cards tbody{display:block}
+  .cards tbody tr{display:block;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .cards td{display:block;border:0;padding:1px 0}
+  .cards td[data-l]::before{content:attr(data-l) "　";color:var(--muted);font-size:12px}
+  .cards td.code{font-size:16px}
+  .cards td.clip{max-width:none}
+  .cards td.r{text-align:left}
+  .fields{grid-template-columns:1fr}
+  .case-code{font-size:22px}
+  .rec-form{grid-template-columns:1fr}
+  .sum{grid-template-columns:1fr 1fr}
+  .dialog{padding:18px}
+}
+@media (max-width:900px){
+  .grid,.set-grid{grid-template-columns:1fr}
+  .rec-form{grid-template-columns:1fr 1fr}
+  .rec-cols{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* print */
+@page{size:A4 landscape;margin:12mm}
+@page portrait{size:A4 portrait;margin:12mm}
+@media print{
+  body{background:#fff;font-size:11px}
+  .bar,.filters .no-print,.no-print,.tools,.rec-form,.toast{display:none!important}
+  main{padding:0;max-width:none}
+  .print-only{display:block}
+  .tbl-wrap,.panel{border:0;padding:0;overflow:visible}
+  th{position:static;background:#e9eef5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pill,.sum div{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr{page-break-inside:avoid}
+  tbody tr:hover{background:none}
+  .f ::placeholder,.f::placeholder,input::placeholder,textarea::placeholder{color:transparent}
+  select{appearance:none;-webkit-appearance:none}
+  .filters input,.filters select{border:0;padding:0}
+  details.group:not([open])>*:not(summary){display:block}
+  details.group>summary h3::before{content:""}
+  #view-case{page:portrait}
+  .grid{grid-template-columns:1fr 1fr}
+  .f input,.f select,.f textarea{border:0;border-bottom:1px solid #ccc;border-radius:0;padding:2px 0;background:none;resize:none}
+  .rec{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">法務案件管理<small id="todayLbl"></small></div>
+    <div class="filestat" id="fileStat"><span class="dot off"></span><span>尚未開啟資料檔</span></div>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="btnNew">＋ 新增案件</button>
+    <button class="btn ghost" id="btnExport">匯出會報 Excel</button>
+    <button class="btn ghost" id="btnPrint">列印本頁</button>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="remind" aria-selected="true">追蹤提醒<span class="badge" id="remindBadge" hidden></span></button>
+    <button class="tab" role="tab" data-view="list" aria-selected="false">案件列表</button>
+    <button class="tab" role="tab" data-view="stats" aria-selected="false">會報統計</button>
+    <button class="tab" role="tab" data-view="settings" aria-selected="false">設定</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 追蹤提醒 -->
+  <section class="view" id="view-remind">
+    <h2>追蹤提醒</h2>
+    <p class="sub" id="remindSub">只列未結案件。下次追蹤日在 7 天內會提醒，過了就列為逾期。</p>
+    <div class="sum" id="remindSum"></div>
+    <div id="remindGroups"></div>
+  </section>
+
+  <!-- 案件列表 -->
+  <section class="view" id="view-list" hidden>
+    <h2>案件列表</h2>
+    <p class="sub print-only" id="listPrintSub"></p>
+    <div class="filters">
+      <input type="search" id="fQ" placeholder="搜尋編號、當事人、訴之標的、處理內容…">
+      <select id="fPrefix"><option value="">全部類別</option></select>
+      <select id="fRegion"><option value="">全部責任區劃</option></select>
+      <select id="fYear"><option value="">全部年度</option></select>
+      <select id="fState">
+        <option value="open">未結案</option>
+        <option value="closed">已結案</option>
+        <option value="">全部</option>
+      </select>
+      <span class="count" id="listCount"></span>
+    </div>
+    <div class="tbl-wrap cards">
+      <table>
+        <thead><tr>
+          <th>編號</th><th>收案日</th><th>案件類型</th><th>責任區劃</th><th>原告/甲方</th><th>被告/乙方</th>
+          <th>訴之標的</th><th>最新狀況</th><th>下次追蹤</th><th class="r">總計</th><th>狀態</th>
+        </tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 會報統計 -->
+  <section class="view" id="view-stats" hidden>
+    <h2>會報統計</h2>
+    <p class="sub">依責任區劃（事件發生的辦公室）統計。處理紀錄筆數與字數用來看法務室花在各地的時間比例。</p>
+    <div class="filters">
+      <label>年度 <select id="sYear"><option value="">全部年度</option></select></label>
+      <label>案件 <select id="sState"><option value="">全部（含已結案）</option><option value="open">只算未結案</option></select></label>
+      <span class="count" id="statsStamp"></span>
+    </div>
+    <div class="stats-grid">
+      <div class="tbl-wrap"><table id="tblRegion"></table></div>
+      <div class="tbl-wrap"><table id="tblPrefix"></table></div>
+    </div>
+    <p class="note">金額單位：新臺幣元。總計＝罰款/賠償＋差額給付＋和解金/友好金（實際發生）；可能賠償金為預估；收回為公司取得的賠償款或和解金。原表匯入的舊案件，每件的原文算 1 筆紀錄，字數較能反映實際投入。</p>
+  </section>
+
+  <!-- 設定 -->
+  <section class="view" id="view-settings" hidden>
+    <h2>設定</h2>
+    <p class="sub">這裡的設定也存在資料檔裡。</p>
+    <div class="set-grid">
+      <div class="panel">
+        <h3>收案編號開頭字</h3>
+        <table class="mini"><thead><tr><th style="width:90px">開頭字</th><th>代表</th><th style="width:60px"></th></tr></thead><tbody id="prefixRows"></tbody></table>
+        <div style="margin-top:8px"><button class="btn sm" id="addPrefix">＋ 新增開頭字</button></div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <h3>責任區劃</h3>
+          <p class="sub" style="margin-bottom:6px">一行一個。輸入案件時會出現在建議清單，也可以直接打其他名稱。</p>
+          <div class="f"><textarea id="regionsTxt" rows="6"></textarea></div>
+        </div>
+        <div class="panel">
+          <h3>帳號與資料</h3>
+          <p id="fileInfo" class="sub" style="margin-bottom:8px;white-space:pre-line"></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="btnReload">從 OneDrive 重新載入</button>
+            <button class="btn" id="btnBackup">下載一份備份</button>
+            <button class="btn danger" id="btnLogout">登出</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>電子檔資料夾</h3>
+          <p class="sub" style="margin-bottom:0">在案件頁按「開啟卷宗資料夾」，系統會在 OneDrive／法務案件管理／卷宗 裡，用收案編號建立資料夾（例如「勞-038」）並打開。掃描檔放進去即可。</p>
+        </div>
+        <div class="panel">
+          <h3>加到主畫面</h3>
+          <p class="sub" style="margin-bottom:0;white-space:pre-line">iPhone：用 Safari 打開，按下方「分享」→「加入主畫面」。
+電腦：用 Edge 或 Chrome 打開，按網址列右側的「安裝」圖示（或選單 →「應用程式」→「安裝此網站」）。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 案件內容 -->
+  <section class="view" id="view-case" hidden></section>
+</main>
+
+<div class="cover" id="welcome" hidden>
+  <div class="dialog">
+    <h2>法務案件管理</h2>
+    <p id="welcomeMsg">請用您的 Microsoft 帳號登入。案件資料存在您的 OneDrive，筆電和手機看到的是同一份。</p>
+    <div id="welcomeFirst" hidden>
+      <ol class="welcome-steps">
+        <li>按「選擇資料檔上傳」，選您下載的「法務案件資料.json」。</li>
+        <li>系統會把它放到 OneDrive／法務案件管理，之後都從那裡讀寫。</li>
+      </ol>
+      <input type="file" id="wFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="acts">
+      <button class="btn" id="wNew" hidden>建立空白資料檔</button>
+      <button class="btn pri" id="wUpload" hidden>選擇資料檔上傳</button>
+      <button class="btn pri" id="wLogin">用 Microsoft 帳號登入</button>
+    </div>
+  </div>
+</div>
+
+<div class="cover" id="dlg" hidden><div class="dialog" id="dlgBox"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<datalist id="dlRegions"></datalist>
+
+<script>
+"use strict";
+/* ============ 狀態 ============ */
+let DB = null;            // 資料檔內容
+let eTag = null;          // OneDrive 上資料檔的版本
+let saveTimer = null, saving = false, pending = false;
+let currentView = "remind", currentCase = null, prevView = "list";
+
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(16).slice(2, 10) + Date.now().toString(16).slice(-4);
+const nowISO = () => new Date().toISOString().slice(0, 19);
+
+/* ============ 日期 ============ */
+function todayISO() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+function isoToROC(iso) { if (!iso) return ""; const [y, m, d] = iso.split("-").map(Number); return `${y - 1911}/${m}/${d}`; }
+function daysUntil(iso) { if (!iso) return null; const a = new Date(iso + "T00:00:00"), b = new Date(todayISO() + "T00:00:00"); return Math.round((a - b) / 86400000); }
+/* 收案日是文字（沿用原表寫法 115/1/29、114/3），換成可排序的數字 */
+function dateKey(txt) {
+  const m = String(txt || "").match(/(\d{2,4})\s*[\/\-.年]\s*(\d{1,2})?(?:\s*[\/\-.月]\s*(\d{1,2}))?/);
+  if (!m) return 0;
+  let y = +m[1]; if (y > 1911) y -= 1911;
+  return y * 10000 + (+(m[2] || 0)) * 100 + (+(m[3] || 0));
+}
+function rocYearOf(txt) { const k = dateKey(txt); return k ? Math.floor(k / 10000) : null; }
+
+/* ============ 案件工具 ============ */
+const code = c => (c.prefix ? c.prefix + " " : "") + (c.num || "");
+const mainNo = c => parseInt(c.num, 10) || 0;
+const isBranch = c => /-/.test(c.num || "");
+const branchSuffix = c => isBranch(c) ? parseInt(String(c.num).split("-").pop(), 10) || 0 : 0;
+const total = c => ["fine", "diff", "settle"].reduce((s, k) => s + (Number(c[k]) || 0), 0);
+const hasMoney = c => ["fine", "diff", "settle"].some(k => c[k] !== null && c[k] !== "" && c[k] !== undefined);
+const money = v => (v === null || v === "" || v === undefined || isNaN(v)) ? "" : Number(v).toLocaleString("zh-TW");
+function sortCases(a, b) { return mainNo(a) - mainNo(b) || (isBranch(a) - isBranch(b)) || branchSuffix(a) - branchSuffix(b) || String(a.num).localeCompare(String(b.num)); }
+function recordsOf(id) {
+  return DB.records.filter(r => r.caseId === id).sort((a, b) =>
+    (a.imported === b.imported ? 0 : a.imported ? -1 : 1) || (a.date || "").localeCompare(b.date || "") || (a.created || "").localeCompare(b.created || ""));
+}
+function latestRec(id) { const r = recordsOf(id); return r[r.length - 1]; }
+function caseById(id) { return DB.cases.find(c => c.id === id); }
+function nextMainNo() { return DB.cases.reduce((m, c) => Math.max(m, mainNo(c)), 0) + 1; }
+function prefixName(p) { const x = DB.settings.prefixes.find(z => z.code === p); return x ? x.name : ""; }
+function followState(c) {
+  if (c.closed) return { k: "closed", t: "已結案", cls: "p-closed" };
+  if (!c.next) return { k: "none", t: "未設", cls: "p-none" };
+  const d = daysUntil(c.next);
+  if (d < 0) return { k: "over", t: `逾期 ${-d} 天`, cls: "p-over", d };
+  if (d <= 7) return { k: "soon", t: d === 0 ? "今天" : `${d} 天後`, cls: "p-soon", d };
+  return { k: "later", t: `${d} 天後`, cls: "p-ok", d };
+}
+
+/* ============ Microsoft 登入與 OneDrive ============ */
+const CLIENT_ID = "f8cdef31-a31e-4b4a-93e4-5f571e91255a";   // Microsoft Entra「應用程式（用戶端）識別碼」
+const AUTH = "https://login.microsoftonline.com/consumers/oauth2/v2.0";
+const SCOPES = "openid profile offline_access User.Read Files.ReadWrite";
+const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, "");
+const DIR = "法務案件管理", DATA_PATH = DIR + "/法務案件資料.json";
+const K = { tok: "lc.tok", cache: "lc.cache", pend: "lc.pending", ver: "lc.verifier", st: "lc.state", etag: "lc.etag", sync: "lc.synced" };
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+let tok = null; try { tok = JSON.parse(lsGet(K.tok) || "null"); } catch (e) {}
+class NeedLogin extends Error {}
+
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const randStr = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
+async function login() {
+  if (CLIENT_ID.startsWith("__")) { alertBox("還沒設定完成", "系統還沒填入 Microsoft 應用程式識別碼，請先完成註冊步驟。"); return; }
+  const verifier = randStr(48), state = randStr(16);
+  lsSet(K.ver, verifier); lsSet(K.st, state);
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: "code", redirect_uri: REDIRECT, scope: SCOPES, response_mode: "query",
+    code_challenge: challenge, code_challenge_method: "S256", state });
+  if (tok && tok.user) q.set("login_hint", tok.user);
+  location.assign(AUTH + "/authorize?" + q);
+}
+async function handleRedirect() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has("code") && !p.has("error")) return;
+  history.replaceState(null, "", REDIRECT);
+  if (p.has("error")) { alertBox("登入沒有完成", (p.get("error_description") || p.get("error")).split("\n")[0]); return; }
+  if (p.get("state") !== lsGet(K.st)) { alertBox("登入沒有完成", "登入資訊不一致，請再按一次登入。"); return; }
+  const r = await fetch(AUTH + "/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: "authorization_code", code: p.get("code"), redirect_uri: REDIRECT, code_verifier: lsGet(K.ver) || "", scope: SCOPES }) });
+  const j = await r.json();
+  if (!r.ok) { alertBox("登入沒有完成", (j.error_description || j.error || "").split("\n")[0]); return; }
+  lsDel(K.ver); lsDel(K.st);
+  saveTok(j);
+  try { const me = await (await gfetch("/me?$select=userPrincipalName,mail,displayName")).json(); tok.user = me.userPrincipalName || me.mail || ""; tok.name = me.displayName || ""; lsSet(K.tok, JSON.stringify(tok)); } catch (e) {}
+}
+function saveTok(j) {
+  tok = { ...(tok || {}), access: j.access_token, refresh: j.refresh_token || (tok && tok.refresh), exp: Date.now() + (j.expires_in - 120) * 1000 };
+  lsSet(K.tok, JSON.stringify(tok));
+}
+async function accessToken() {
+  if (!tok || !tok.access) throw new NeedLogin();
+  if (Date.now() < tok.exp) return tok.access;
+  if (!tok.refresh) throw new NeedLogin();
+  const r = await fetch(AUTH + "/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: "refresh_token", refresh_token: tok.refresh, scope: SCOPES }) });
+  if (!r.ok) { tok.access = null; tok.refresh = null; lsSet(K.tok, JSON.stringify(tok)); throw new NeedLogin(); }
+  saveTok(await r.json()); return tok.access;
+}
+async function gfetch(path, opt = {}, retry = true) {
+  const t = await accessToken();
+  const r = await fetch("https://graph.microsoft.com/v1.0" + path, { ...opt, headers: { ...(opt.headers || {}), Authorization: "Bearer " + t } });
+  if (r.status === 401 && retry) { tok.exp = 0; return gfetch(path, opt, false); }
+  return r;
+}
+const encPath = p => p.split("/").map(encodeURIComponent).join("/");
+
+async function loadRemote() {
+  const m = await gfetch(`/me/drive/root:/${encPath(DATA_PATH)}?$select=id,eTag,lastModifiedDateTime`);
+  if (m.status === 404) return { missing: true };
+  if (!m.ok) throw new Error("讀取 OneDrive 失敗（" + m.status + "）");
+  const meta = await m.json();
+  const c = await gfetch(`/me/drive/items/${meta.id}/content`);
+  if (!c.ok) throw new Error("讀取資料檔失敗（" + c.status + "）");
+  const data = JSON.parse(await c.text());
+  return { data, eTag: meta.eTag };
+}
+async function remoteETag() {
+  const m = await gfetch(`/me/drive/root:/${encPath(DATA_PATH)}?$select=eTag`);
+  return m.ok ? (await m.json()).eTag : null;
+}
+function useData(data, tag) {
+  normalize(data);
+  DB = data; eTag = tag || null;
+  lsSet(K.cache, JSON.stringify(DB)); if (tag) lsSet(K.etag, tag);
+  $("#welcome").hidden = true;
+  refreshAll();
+}
+async function startSession() {
+  setFileStat("busy");
+  try {
+    const r = await loadRemote();
+    if (r.missing) { showFirstRun(); setFileStat("ok"); return; }
+    if (pending && DB) { eTag = lsGet(K.etag); await writeNow(); return; }   // 這台有尚未同步的修改，先存上去
+    useData(r.data, r.eTag); lsSet(K.sync, nowISO()); setFileStat("ok");
+  } catch (e) {
+    if (e instanceof NeedLogin) { showLogin(DB ? "登入已過期，請再登入一次，才能和 OneDrive 同步。" : null); setFileStat("login"); return; }
+    setFileStat(navigator.onLine ? "err" : "off");
+    if (!DB) alertBox("無法連線 OneDrive", e.message + "\n請確認網路後重新整理頁面。");
+  }
+}
+function showLogin(msg) {
+  $("#welcome").hidden = false; $("#welcomeFirst").hidden = true;
+  $("#wLogin").hidden = false; $("#wUpload").hidden = true; $("#wNew").hidden = true;
+  $("#welcomeMsg").textContent = msg || "請用您的 Microsoft 帳號登入。案件資料存在您的 OneDrive，筆電和手機看到的是同一份。";
+}
+function showFirstRun() {
+  $("#welcome").hidden = false; $("#welcomeFirst").hidden = false;
+  $("#wLogin").hidden = true; $("#wUpload").hidden = false; $("#wNew").hidden = false;
+  $("#welcomeMsg").textContent = `已登入 ${tok && tok.user ? tok.user : ""}。OneDrive 裡還沒有「法務案件管理」資料檔。`;
+}
+async function uploadFirst(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !Array.isArray(data.cases)) throw new Error("這個檔案不是案件資料檔。請選「法務案件資料.json」。");
+    normalize(data); DB = data; eTag = null; pending = true;
+    await writeNow();
+    if (!pending) { useData(DB, eTag); toast(`已上傳，共 ${DB.cases.length} 件案件`); }
+  } catch (e) { alertBox("上傳失敗", e.message); }
+}
+function emptyDB() {
+  return { app: "法務案件管理", version: 1, saved: nowISO(), settings: { prefixes: [], regions: ["新北", "中港", "台中", "桃園加盟", "委外單位"], fileRoot: "" }, cases: [], records: [] };
+}
+function normalize(d) {
+  d.settings = d.settings || {}; d.settings.prefixes = d.settings.prefixes || []; d.settings.regions = d.settings.regions || []; d.settings.fileRoot = d.settings.fileRoot || "";
+  d.records = d.records || [];
+}
+function markDirty() {
+  if (!DB) return;
+  pending = true; lsSet(K.pend, "1"); lsSet(K.cache, JSON.stringify(DB));
+  setFileStat("busy");
+  clearTimeout(saveTimer); saveTimer = setTimeout(writeNow, 1200);
+}
+async function writeNow() {
+  if (!DB) return;
+  if (saving) { clearTimeout(saveTimer); saveTimer = setTimeout(writeNow, 600); return; }
+  saving = true;
+  try {
+    DB.saved = nowISO();
+    const headers = { "Content-Type": "application/json" };
+    if (eTag) headers["If-Match"] = eTag;
+    const r = await gfetch(`/me/drive/root:/${encPath(DATA_PATH)}:/content`, { method: "PUT", headers, body: JSON.stringify(DB, null, 1) });
+    if (r.status === 412) { saving = false; return conflict(); }
+    if (!r.ok) throw new Error("OneDrive 回應 " + r.status);
+    const meta = await r.json(); eTag = meta.eTag;
+    pending = false; lsDel(K.pend); lsSet(K.etag, eTag); lsSet(K.cache, JSON.stringify(DB)); lsSet(K.sync, nowISO());
+    setFileStat("ok");
+  } catch (e) {
+    if (e instanceof NeedLogin) { setFileStat("login"); showLogin("登入已過期，請再登入一次。這台裝置上的修改都還在，登入後會自動存回 OneDrive。"); }
+    else setFileStat(navigator.onLine ? "err" : "off");
+  } finally { saving = false; }
+}
+function conflict() {
+  setFileStat("err");
+  showDlg(`<h2>另一台裝置剛改過資料</h2>
+    <p>OneDrive 上的資料檔，在這台裝置最後一次同步之後被其他裝置修改過。請選擇要保留哪一份：</p>
+    <div class="acts"><button class="btn" id="cfKeepMine">用這台的資料覆蓋</button><button class="btn pri" id="cfLoad">載入 OneDrive 最新版</button></div>
+    <p class="note">選「載入最新版」，這台還沒存上去的修改會被捨棄。</p>`);
+  $("#cfLoad").onclick = async () => { closeDlg(); pending = false; lsDel(K.pend); const r = await loadRemote(); useData(r.data, r.eTag); setFileStat("ok"); toast("已載入 OneDrive 最新內容"); };
+  $("#cfKeepMine").onclick = async () => { closeDlg(); eTag = null; await writeNow(); toast("已用這台的資料覆蓋"); };
+}
+/* 回到這個畫面時，看看其他裝置有沒有改過 */
+async function checkExternal() {
+  if (!DB || pending || saving || !tok || !tok.access) { if (pending && !saving && DB) writeNow(); return; }
+  try {
+    const t = await remoteETag();
+    if (t && eTag && t !== eTag) { const r = await loadRemote(); useData(r.data, r.eTag); toast("已載入其他裝置的最新修改"); }
+  } catch (e) {}
+}
+function setFileStat(st) {
+  const t = { ok: "已同步 OneDrive", busy: "同步中…", err: "同步失敗，稍後重試", off: "離線中，連網後會自動同步", login: "需要重新登入" }[st];
+  $("#fileStat").innerHTML = `<span class="dot ${st === "ok" ? "" : st === "busy" ? "busy" : "off"}"></span><span>${t}</span>`;
+  const fi = $("#fileInfo");
+  if (fi) fi.textContent = `登入帳號：${tok && tok.user ? tok.user : "未登入"}\n資料位置：OneDrive／${DATA_PATH.replace("/", "／")}\n最後同步：${(lsGet(K.sync) || "—").replace("T", " ")}`;
+}
+function backup() {
+  const blob = new Blob([JSON.stringify(DB, null, 1)], { type: "application/json" });
+  saveBlob(blob, `法務案件資料_備份_${todayISO()}.json`);
+}
+function saveBlob(blob, name) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+}
+function logout() {
+  confirmBox("登出", "登出後，這台裝置上暫存的案件資料會清除（OneDrive 上的資料不受影響）。", "登出", () => {
+    [K.tok, K.cache, K.pend, K.etag, K.sync].forEach(lsDel); tok = null; DB = null;
+    location.assign(AUTH + "/logout?post_logout_redirect_uri=" + encodeURIComponent(REDIRECT));
+  });
+}
+/* 卷宗資料夾：OneDrive／法務案件管理／卷宗／勞-038 */
+async function ensureFolder(path) {
+  const r = await gfetch(`/me/drive/root:/${encPath(path)}?$select=id,webUrl`);
+  if (r.ok) return r.json();
+  if (r.status !== 404) throw new Error("OneDrive 回應 " + r.status);
+  const parts = path.split("/"), name = parts.pop(), parent = parts.join("/");
+  if (parent) await ensureFolder(parent);
+  const url = parent ? `/me/drive/root:/${encPath(parent)}:/children` : `/me/drive/root/children`;
+  const c = await gfetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }) });
+  if (c.status === 409) return (await gfetch(`/me/drive/root:/${encPath(path)}?$select=id,webUrl`)).json();
+  if (!c.ok) throw new Error("無法建立資料夾（" + c.status + "）");
+  return c.json();
+}
+async function uploadToOneDrive(path, blob) {
+  const r = await gfetch(`/me/drive/root:/${encPath(path)}:/content`, { method: "PUT", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+  if (!r.ok) throw new Error("上傳失敗（" + r.status + "）");
+  return r.json();
+}
+
+/* ============ 對話框 ============ */
+function showDlg(html) { $("#dlgBox").innerHTML = html; $("#dlg").hidden = false; const f = $("#dlgBox input,#dlgBox select,#dlgBox button.pri"); if (f) f.focus(); }
+function closeDlg() { $("#dlg").hidden = true; $("#dlgBox").innerHTML = ""; }
+function alertBox(title, msg) {
+  showDlg(`<h2>${esc(title)}</h2><p style="white-space:pre-wrap">${esc(msg)}</p><div class="acts"><button class="btn pri" data-close>知道了</button></div>`);
+}
+function confirmBox(title, msg, okText, onOk) {
+  showDlg(`<h2>${esc(title)}</h2><p style="white-space:pre-wrap">${esc(msg)}</p><div class="acts"><button class="btn" data-close>取消</button><button class="btn pri danger-ok" id="cfOk">${esc(okText)}</button></div>`);
+  $("#cfOk").onclick = () => { closeDlg(); onOk(); };
+}
+$("#dlg").addEventListener("click", e => { if (e.target.id === "dlg" || e.target.hasAttribute("data-close")) closeDlg(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#dlg").hidden) closeDlg(); });
+let toastT;
+function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+
+/* ============ 分頁 ============ */
+function show(view) {
+  if (view !== "case") prevView = view;
+  currentView = view;
+  $$(".view").forEach(v => v.hidden = v.id !== "view-" + view);
+  $$(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.view === view ? "true" : "false"));
+  render(view);
+  window.scrollTo(0, 0);
+}
+function render(view) {
+  if (!DB) return;
+  ({ remind: renderRemind, list: renderList, stats: renderStats, settings: renderSettings, case: () => renderCase(currentCase) })[view]();
+}
+function refreshAll() {
+  fillFilterOptions();
+  updateBadge();
+  $("#dlRegions").innerHTML = DB.settings.regions.map(r => `<option value="${esc(r)}">`).join("");
+  render(currentView);
+}
+function updateBadge() {
+  const n = DB.cases.filter(c => { const s = followState(c); return s.k === "over" || s.k === "soon"; }).length;
+  const b = $("#remindBadge"); b.hidden = !n; b.textContent = n;
+}
+
+/* ============ 追蹤提醒 ============ */
+function renderRemind() {
+  const open = DB.cases.filter(c => !c.closed);
+  const g = { over: [], soon: [], later: [], none: [] };
+  open.forEach(c => g[followState(c).k].push(c));
+  g.over.sort((a, b) => a.next.localeCompare(b.next)); g.soon.sort((a, b) => a.next.localeCompare(b.next)); g.later.sort((a, b) => a.next.localeCompare(b.next)); g.none.sort(sortCases);
+  $("#remindSub").textContent = `今天 ${isoToROC(todayISO())}。只列未結案件；下次追蹤日在 7 天內會提醒，過了就列為逾期。`;
+  $("#remindSum").innerHTML = `
+    <div class="s-over"><b class="num">${g.over.length}</b><span>已逾期</span></div>
+    <div class="s-soon"><b class="num">${g.soon.length}</b><span>7 天內要追蹤</span></div>
+    <div><b class="num">${g.later.length}</b><span>8 天以上</span></div>
+    <div><b class="num">${g.none.length}</b><span>未結但沒設追蹤日</span></div>`;
+  const table = list => `<div class="tbl-wrap cards"><table><thead><tr><th>追蹤日</th><th>編號</th><th>案件類型</th><th>責任區劃</th><th>對象</th><th>最新狀況</th><th>分析／注意</th></tr></thead><tbody>${
+    list.map(c => { const s = followState(c), r = latestRec(c.id);
+      return `<tr data-case="${c.id}"><td style="white-space:nowrap"><span class="num">${esc(isoToROC(c.next))}</span> <span class="pill ${s.cls}">${s.t}</span></td>
+      <td class="code">${esc(code(c))}</td><td data-l="類型">${esc(c.type)}</td><td data-l="區劃">${esc(c.region)}</td>
+      <td data-l="對象">${esc(c.defendant && !/福爾摩沙/.test(c.defendant) ? c.defendant : c.plaintiff)}</td>
+      <td class="clip" data-l="最新"><div class="clip3">${esc(r ? (r.date ? isoToROC(r.date) + " " : "") + r.status : "")}</div></td>
+      <td class="clip" data-l="分析"><div class="clip3">${esc(r ? r.analysis : "")}</div></td></tr>`; }).join("")
+  }</tbody></table></div>`;
+  const sec = (title, list, open = true, hint = "") => list.length ? `<details class="group" ${open ? "open" : ""}><summary><h3>${title}（${list.length}）</h3></summary>${hint ? `<p class="sub">${hint}</p>` : ""}${table(list)}</details>` : "";
+  const html = sec("已逾期", g.over) + sec("7 天內要追蹤", g.soon) + sec("8 天以上", g.later, false) +
+    sec("未結但沒設追蹤日", g.none, false, "這些案件沒有提醒。已經結束的請到案件頁標示「已結案」；還在進行的，新增處理紀錄時填下次追蹤日。");
+  $("#remindGroups").innerHTML = html || `<div class="panel empty">目前沒有未結案件。</div>`;
+}
+
+/* ============ 案件列表 ============ */
+function fillFilterOptions() {
+  const keep = (sel, opts, first) => { const el = $(sel), v = el.value; el.innerHTML = first + opts.map(o => `<option value="${esc(o.v)}">${esc(o.t)}</option>`).join(""); el.value = opts.some(o => o.v === v) ? v : ""; };
+  const pfx = [...new Set([...DB.settings.prefixes.map(p => p.code), ...DB.cases.map(c => c.prefix)])].filter(Boolean);
+  keep("#fPrefix", pfx.map(p => ({ v: p, t: p + (prefixName(p) ? "｜" + prefixName(p) : "") })), `<option value="">全部類別</option>`);
+  const regs = [...new Set([...DB.settings.regions, ...DB.cases.map(c => c.region)])].filter(Boolean);
+  keep("#fRegion", [...regs.map(r => ({ v: r, t: r })), { v: "__none", t: "（未填）" }], `<option value="">全部責任區劃</option>`);
+  const yrs = [...new Set(DB.cases.map(c => c.year).filter(Boolean))].sort((a, b) => b - a);
+  keep("#fYear", yrs.map(y => ({ v: String(y), t: y + " 年" })), `<option value="">全部年度</option>`);
+  keep("#sYear", yrs.map(y => ({ v: String(y), t: y + " 年" })), `<option value="">全部年度</option>`);
+}
+function renderList() {
+  const q = $("#fQ").value.trim().toLowerCase(), p = $("#fPrefix").value, rg = $("#fRegion").value, y = $("#fYear").value, st = $("#fState").value;
+  let rows = DB.cases.filter(c => {
+    if (p && c.prefix !== p) return false;
+    if (rg === "__none" ? c.region : rg && c.region !== rg) return false;
+    if (y && String(c.year) !== y) return false;
+    if (st === "open" && c.closed) return false;
+    if (st === "closed" && !c.closed) return false;
+    if (q) {
+      const recs = DB.records.filter(r => r.caseId === c.id).map(r => r.status + " " + r.analysis).join(" ");
+      const hay = [code(c), c.prefix + c.num, c.type, c.govNo, c.agency, c.clerk, c.plaintiff, c.defendant, c.region, c.resp1, c.resp2, c.subject, c.handler, recs].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort(sortCases);
+  $("#listCount").textContent = `共 ${rows.length} 件`;
+  $("#listPrintSub").textContent = `列印日期 ${isoToROC(todayISO())}｜條件：${[$("#fPrefix").selectedOptions[0].text, $("#fRegion").selectedOptions[0].text, $("#fYear").selectedOptions[0].text, $("#fState").selectedOptions[0].text, q ? "搜尋「" + q + "」" : ""].filter(Boolean).join("、")}｜共 ${rows.length} 件`;
+  $("#listBody").innerHTML = rows.length ? rows.map(c => {
+    const s = followState(c), r = latestRec(c.id);
+    return `<tr data-case="${c.id}" class="${c.closed ? "closed" : ""}">
+      <td class="code">${esc(code(c))}</td><td class="num" data-l="收案日" style="white-space:nowrap">${esc(c.date)}</td><td data-l="類型">${esc(c.type)}</td><td data-l="區劃">${esc(c.region)}</td>
+      <td data-l="甲方">${esc(c.plaintiff)}</td><td data-l="乙方">${esc(c.defendant)}</td>
+      <td class="clip" data-l="標的"><div class="clip3">${esc(c.subject)}</div></td>
+      <td class="clip" data-l="最新"><div class="clip3">${esc(r ? (r.date ? isoToROC(r.date) + " " : "") + (r.status || r.analysis) : "")}</div></td>
+      <td data-l="追蹤" style="white-space:nowrap">${c.next ? `<span class="num">${esc(isoToROC(c.next))}</span><br>` : ""}<span class="pill ${s.cls}">${s.t}</span></td>
+      <td class="r num" data-l="總計">${hasMoney(c) ? money(total(c)) : ""}</td>
+      <td>${c.closed ? `<span class="pill p-closed">已結案</span>` : `<span class="pill p-ok">進行中</span>`}</td></tr>`;
+  }).join("") : `<tr><td colspan="11" class="empty">沒有符合條件的案件。</td></tr>`;
+}
+
+/* ============ 案件內容 ============ */
+const FIELDS = [
+  ["收案資料", [
+    ["prefix", "開頭字", "prefix"], ["num", "編號", "text"],
+    ["date", "收案日（例：115/10/25）", "date"], ["year", "年度（民國）", "number"],
+    ["type", "案件類型", "text"], ["region", "責任區劃（事件發生的辦公室）", "region"],
+  ]],
+  ["政府與對方", [
+    ["govNo", "案號（政府/法院）", "text"], ["agency", "股別/區域（政府分案單位）", "text"],
+    ["clerk", "書記官/聯繫（承辦人、電話）", "text", "full"],
+    ["plaintiff", "原告/告訴人/甲方", "area"], ["defendant", "被告/相對人/乙方", "area"],
+  ]],
+  ["責任與承辦", [
+    ["resp1", "關係人（主責任人）※被交辦填交辦人", "text"], ["resp2", "次要關係人（次責任）", "text"],
+    ["handler", "相關承辦（公司內主承辦）", "text", "full"],
+    ["subject", "訴之標的", "area", "full"],
+  ]],
+];
+const MONEY = [["fine", "罰款/賠償"], ["diff", "差額給付"], ["settle", "和解金/友好金"], ["estimate", "可能賠償金/或罰款"], ["recovered", "收回（取得賠償款或和解金）"]];
+
+function fieldHTML([k, label, type, cls], c) {
+  const v = c[k] ?? "";
+  let input;
+  if (type === "prefix") {
+    const opts = [...new Set([...DB.settings.prefixes.map(p => p.code), c.prefix].filter(x => x !== undefined))];
+    input = `<select data-f="${k}" id="cf-${k}">${opts.map(o => `<option value="${esc(o)}" ${o === c.prefix ? "selected" : ""}>${esc(o || "（無）")}${prefixName(o) ? "｜" + esc(prefixName(o)) : ""}</option>`).join("")}</select>`;
+  } else if (type === "area") input = `<textarea data-f="${k}" id="cf-${k}" rows="2">${esc(v)}</textarea>`;
+  else if (type === "date") input = `<div class="row"><input data-f="${k}" id="cf-${k}" value="${esc(v)}"><button class="btn sm no-print" data-today type="button">今天</button></div>`;
+  else if (type === "region") input = `<input data-f="${k}" id="cf-${k}" list="dlRegions" value="${esc(v)}">`;
+  else input = `<input data-f="${k}" id="cf-${k}" ${type === "number" ? 'inputmode="numeric"' : ""} value="${esc(v)}">`;
+  return `<div class="f ${cls || ""}"><label for="cf-${k}">${esc(label)}</label>${input}</div>`;
+}
+function openCase(id) { currentCase = id; show("case"); }
+function renderCase(id) {
+  const c = caseById(id);
+  const el = $("#view-case");
+  if (!c) { el.innerHTML = `<div class="panel empty">找不到這件案件。</div>`; return; }
+  const s = followState(c);
+  const parent = isBranch(c) ? DB.cases.find(x => !isBranch(x) && mainNo(x) === mainNo(c)) : null;
+  const kids = isBranch(c) ? [] : DB.cases.filter(x => isBranch(x) && mainNo(x) === mainNo(c)).sort(sortCases);
+  const recs = recordsOf(c.id).slice().reverse();
+  el.innerHTML = `
+  <div class="case-head">
+    <button class="btn no-print" id="back">← 返回</button>
+    <div class="case-code">${esc(code(c))}</div>
+    <div class="case-type">${esc(prefixName(c.prefix))}${c.type ? "｜" + esc(c.type) : ""}</div>
+    ${c.closed ? `<span class="pill p-closed">已結案</span>` : `<span class="pill p-ok">進行中</span>`}
+    <div class="spacer"></div>
+    <label class="no-print" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="closedChk" ${c.closed ? "checked" : ""}> 已結案</label>
+    ${isBranch(c) ? "" : `<button class="btn no-print" id="addBranch">＋ 新增旁支事件</button>`}
+    <button class="btn danger no-print" id="delCase">刪除案件</button>
+  </div>
+  <p class="print-only sub">列印日期 ${isoToROC(todayISO())}</p>
+  ${parent || kids.length ? `<p class="sub branches no-print">${parent ? `主案件：<a href="#" data-case="${parent.id}">${esc(code(parent))}</a>` : `旁支事件：${kids.map(k => `<a href="#" data-case="${k.id}">${esc(code(k))}${k.closed ? "（已結）" : ""}</a>`).join("")}`}</p>` : ""}
+  <div class="grid">
+    <div class="stack">
+      ${FIELDS.map(([t, fs]) => `<div class="panel"><h3>${t}</h3><div class="fields">${fs.map(f => fieldHTML(f, c)).join("")}</div></div>`).join("")}
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <h3>追蹤</h3>
+        <div class="fields">
+          <div class="f"><label for="cf-next">下次追蹤日</label><div class="row"><input type="date" id="cf-next" value="${esc(c.next)}"><button class="btn sm no-print" id="clrNext" type="button">清除</button></div></div>
+          <div class="f"><label>&nbsp;</label><div style="padding-top:6px"><span class="pill ${s.cls}">${s.t}</span></div></div>
+        </div>
+      </div>
+      <div class="panel money">
+        <h3>金額（元）</h3>
+        <div class="fields">
+          ${MONEY.slice(0, 3).map(([k, l]) => `<div class="f"><label for="cf-${k}">${l}</label><input data-m="${k}" id="cf-${k}" inputmode="numeric" value="${esc(c[k] ?? "")}"></div>`).join("")}
+          <div class="f"><label for="cf-total">總計（實際發生，自動）</label><input id="cf-total" readonly value="${hasMoney(c) ? money(total(c)) : ""}"></div>
+          ${MONEY.slice(3).map(([k, l]) => `<div class="f"><label for="cf-${k}">${l}</label><input data-m="${k}" id="cf-${k}" inputmode="numeric" value="${esc(c[k] ?? "")}"></div>`).join("")}
+          <div class="f"><label for="cf-hasComp">有無賠償（算法待定，先自行填寫）</label><input data-f="hasComp" id="cf-hasComp" value="${esc(c.hasComp)}"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>電子檔（OneDrive）</h3>
+        <div class="no-print" style="margin-bottom:10px"><button class="btn" id="openFolder" type="button">開啟卷宗資料夾</button>
+          <span class="sub" style="margin-left:6px">OneDrive／法務案件管理／卷宗／${esc(folderName(c))}</span></div>
+        <div class="f"><label for="cf-fileLink">其他位置（選填：別處的檔案或共用連結）</label>
+          <div class="row"><input data-f="fileLink" id="cf-fileLink" value="${esc(c.fileLink)}" placeholder="貼上 OneDrive 網址">
+          <button class="btn sm no-print" id="openLink" type="button">開啟</button><button class="btn sm no-print" id="copyLink" type="button">複製</button></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h3>處理紀錄（${recs.length} 筆，最新在上）</h3>
+    <form class="rec-form" id="recForm" autocomplete="off">
+      <div class="f"><label for="rf-date">日期</label><input type="date" id="rf-date" value="${todayISO()}"></div>
+      <div class="f"><label for="rf-status">實際狀況</label><textarea id="rf-status" rows="3" placeholder="案件實際的進展"></textarea></div>
+      <div class="f"><label for="rf-analysis">分析／之後要注意</label><textarea id="rf-analysis" rows="3" placeholder="您的分析、要注意的事"></textarea></div>
+      <div class="f"><label for="rf-next">下次追蹤日</label><input type="date" id="rf-next"></div>
+      <div class="acts"><input type="hidden" id="rf-id"><button class="btn" type="button" id="rfCancel" hidden>取消編輯</button><button class="btn pri" type="submit" id="rfSubmit">新增紀錄</button></div>
+    </form>
+    <div class="timeline">${recs.length ? recs.map(r => `
+      <div class="rec">
+        <div class="rec-top"><span class="rec-date num">${r.imported ? "原表匯入" : esc(isoToROC(r.date) || "（無日期）")}</span>
+          ${r.next ? `<span class="pill p-none">追蹤日 ${esc(isoToROC(r.next))}</span>` : ""}
+          <span class="tools"><button class="btn sm" data-edit="${r.id}">編輯</button><button class="btn sm danger" data-del="${r.id}">刪除</button></span></div>
+        <div class="rec-cols">
+          <div><h4>實際狀況</h4><p>${esc(r.status) || "—"}</p></div>
+          <div><h4>分析／之後要注意</h4><p>${esc(r.analysis) || "—"}</p></div>
+        </div>
+      </div>`).join("") : `<div class="empty">還沒有處理紀錄。</div>`}</div>
+  </div>`;
+  bindCase(c);
+}
+function bindCase(c) {
+  const el = $("#view-case");
+  $("#back").onclick = () => show(prevView);
+  el.querySelectorAll("[data-f]").forEach(inp => inp.addEventListener("change", () => {
+    const k = inp.dataset.f; let v = inp.value.trim();
+    if (k === "year") v = v ? parseInt(v, 10) || null : null;
+    if (k === "num" || k === "prefix") {
+      const dup = DB.cases.find(x => x.id !== c.id && x.prefix === (k === "prefix" ? v : c.prefix) && x.num === (k === "num" ? v : c.num));
+      if (dup) { alertBox("編號重複", `已經有 ${code(dup)}，請換一個編號。`); inp.value = c[k]; return; }
+    }
+    c[k] = v; c.updated = nowISO();
+    if (k === "date") { const y = rocYearOf(v); if (y) { c.year = y; $("#cf-year").value = y; } }
+    markDirty();
+    if (["prefix", "num", "type"].includes(k)) renderCase(c.id);
+    fillFilterOptions();
+  }));
+  el.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { const i = b.previousElementSibling; i.value = isoToROC(todayISO()); i.dispatchEvent(new Event("change")); });
+  el.querySelectorAll("[data-m]").forEach(inp => inp.addEventListener("change", () => {
+    const raw = inp.value.replace(/[,\s元]/g, "");
+    if (raw !== "" && isNaN(raw)) { alertBox("金額格式不對", "請只輸入數字，例如 15000 或 -5000。"); inp.value = c[inp.dataset.m] ?? ""; return; }
+    c[inp.dataset.m] = raw === "" ? null : Number(raw); c.updated = nowISO();
+    $("#cf-total").value = hasMoney(c) ? money(total(c)) : "";
+    markDirty();
+  }));
+  $("#cf-next").onchange = e => { c.next = e.target.value; markDirty(); updateBadge(); renderCase(c.id); };
+  $("#clrNext").onclick = () => { c.next = ""; markDirty(); updateBadge(); renderCase(c.id); };
+  $("#closedChk").onchange = e => { c.closed = e.target.checked; c.updated = nowISO(); markDirty(); updateBadge(); renderCase(c.id); toast(c.closed ? `${code(c)} 已標示結案` : `${code(c)} 改回進行中`); };
+  $("#delCase").onclick = () => confirmBox("刪除案件", `確定要刪除 ${code(c)}？這件案子的 ${recordsOf(c.id).length} 筆處理紀錄也會一起刪除。\n（OneDrive 有版本紀錄，必要時可以還原。）`, "刪除", () => {
+    DB.cases = DB.cases.filter(x => x.id !== c.id); DB.records = DB.records.filter(r => r.caseId !== c.id); markDirty(); updateBadge(); toast("已刪除 " + code(c)); show(prevView);
+  });
+  const ab = $("#addBranch"); if (ab) ab.onclick = () => newBranch(c);
+  $("#openLink").onclick = () => {
+    const v = c.fileLink; if (!v) { toast("還沒有填電子檔位置"); return; }
+    const url = /^(https?:|file:)/i.test(v) ? v : "file:///" + v.replace(/\\/g, "/");
+    const w = window.open(url, "_blank");
+    if (!w) { toast("瀏覽器擋住了，請按「複製」後貼到網址列"); }
+  };
+  $("#copyLink").onclick = async () => { try { await navigator.clipboard.writeText(c.fileLink || ""); toast("已複製，可貼到檔案總管的網址列"); } catch (e) { $("#cf-fileLink").select(); toast("請按 Ctrl+C 複製"); } };
+  $("#openFolder").onclick = async () => {
+    const w = window.open("about:blank", "_blank");
+    try {
+      toast("正在開啟資料夾…");
+      const f = await ensureFolder(`${DIR}/卷宗/${folderName(c)}`);
+      if (w) w.location.href = f.webUrl; else location.href = f.webUrl;
+    } catch (e) { if (w) w.close(); if (e instanceof NeedLogin) showLogin("請先登入"); else alertBox("無法開啟資料夾", e.message); }
+  };
+  el.querySelectorAll("a[data-case]").forEach(a => a.onclick = e => { e.preventDefault(); openCase(a.dataset.case); });
+
+  const form = $("#recForm");
+  const resetForm = () => { $("#rf-date").disabled = false; $("#rf-id").value = ""; $("#rf-date").value = todayISO(); $("#rf-status").value = ""; $("#rf-analysis").value = ""; $("#rf-next").value = ""; $("#rfSubmit").textContent = "新增紀錄"; $("#rfCancel").hidden = true; };
+  $("#rfCancel").onclick = resetForm;
+  form.onsubmit = e => {
+    e.preventDefault();
+    const st = $("#rf-status").value.trim(), an = $("#rf-analysis").value.trim(), nx = $("#rf-next").value, dt = $("#rf-date").value, rid = $("#rf-id").value;
+    if (!st && !an) { toast("請至少填寫實際狀況或分析其中一格"); $("#rf-status").focus(); return; }
+    if (rid) {
+      const r = DB.records.find(x => x.id === rid); Object.assign(r, { date: r.imported ? r.date : dt, status: st, analysis: an, next: nx });
+    } else {
+      DB.records.push({ id: uid(), caseId: c.id, date: dt, status: st, analysis: an, next: nx, imported: false, created: nowISO() });
+    }
+    if (nx) c.next = nx;
+    c.updated = nowISO(); markDirty(); updateBadge(); renderCase(c.id);
+    toast(rid ? "已更新紀錄" : nx ? `已新增紀錄，${isoToROC(nx)} 會提醒您` : "已新增紀錄");
+  };
+  el.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const r = DB.records.find(x => x.id === b.dataset.edit);
+    $("#rf-id").value = r.id; $("#rf-date").value = r.date || ""; $("#rf-date").disabled = !!r.imported;
+    $("#rf-status").value = r.status; $("#rf-analysis").value = r.analysis; $("#rf-next").value = r.next || "";
+    $("#rfSubmit").textContent = "儲存修改"; $("#rfCancel").hidden = false; $("#rf-status").focus();
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  el.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmBox("刪除紀錄", "確定要刪除這筆處理紀錄？", "刪除", () => {
+    DB.records = DB.records.filter(x => x.id !== b.dataset.del); markDirty(); renderCase(c.id); toast("已刪除紀錄");
+  }));
+}
+function folderName(c) {
+  const n = String(c.num || ""); const m = n.match(/^(\d+)(.*)$/);
+  return (c.prefix ? c.prefix + "-" : "") + (m ? m[1].padStart(3, "0") + m[2] : n);
+}
+
+/* ============ 新增案件 / 旁支 ============ */
+function newCaseDialog(preset = {}) {
+  if (!DB) { $("#welcome").hidden = false; return; }
+  const num = preset.num ?? String(nextMainNo());
+  const opts = DB.settings.prefixes.map(p => `<option value="${esc(p.code)}" ${p.code === preset.prefix ? "selected" : ""}>${esc(p.code)}｜${esc(p.name)}</option>`).join("");
+  showDlg(`<h2>${preset.parent ? "新增旁支事件" : "新增案件"}</h2>
+    ${preset.parent ? `<p class="sub">從 ${esc(code(preset.parent))} 衍生，會帶入原案件的當事人、責任區劃與承辦。</p>` : `<p class="sub">流水號是全部案件共用，系統已帶入下一號，可以修改。</p>`}
+    <div class="fields">
+      <div class="f"><label for="nc-prefix">開頭字</label><select id="nc-prefix">${opts}</select></div>
+      <div class="f"><label for="nc-num">編號</label><input id="nc-num" value="${esc(num)}"></div>
+      <div class="f"><label for="nc-date">收案日</label><input id="nc-date" value="${esc(isoToROC(todayISO()))}"></div>
+      <div class="f"><label for="nc-type">案件類型</label><input id="nc-type" value="${esc(preset.type || "")}" placeholder="例：勞動調解案"></div>
+      <div class="f full"><label for="nc-region">責任區劃</label><input id="nc-region" list="dlRegions" value="${esc(preset.region || "")}"></div>
+    </div>
+    <div class="acts"><button class="btn" data-close>取消</button><button class="btn pri" id="ncOk">建立並開啟</button></div>`);
+  $("#ncOk").onclick = () => {
+    const prefix = $("#nc-prefix").value, n = $("#nc-num").value.trim();
+    if (!n) { toast("請填編號"); return; }
+    const dup = DB.cases.find(x => x.prefix === prefix && x.num === n);
+    if (dup) { toast(`已經有 ${code(dup)}`); return; }
+    const p = preset.parent || {};
+    const c = { id: uid(), prefix, num: n, date: $("#nc-date").value.trim(), type: $("#nc-type").value.trim(), year: rocYearOf($("#nc-date").value),
+      govNo: "", agency: p.agency || "", clerk: p.clerk || "", plaintiff: p.plaintiff || "", defendant: p.defendant || "", region: $("#nc-region").value.trim(),
+      resp1: p.resp1 || "", resp2: p.resp2 || "", subject: "", handler: p.handler || "", closed: false,
+      fine: null, diff: null, settle: null, estimate: null, hasComp: "", recovered: null, next: "", fileLink: "", created: nowISO(), updated: nowISO() };
+    DB.cases.push(c); markDirty(); closeDlg(); fillFilterOptions(); toast("已建立 " + code(c)); openCase(c.id);
+  };
+}
+function newBranch(parent) {
+  const kids = DB.cases.filter(x => isBranch(x) && mainNo(x) === mainNo(parent));
+  const n = kids.reduce((m, k) => Math.max(m, branchSuffix(k)), 0) + 1;
+  const threeDigit = kids.some(k => /-\d{3}$/.test(k.num));
+  const base = /^0/.test(String(parent.num)) || String(parent.num).length >= 3 ? String(parent.num) : String(mainNo(parent)).padStart(3, "0");
+  const num = threeDigit ? `${mainNo(parent)}-${String(n).padStart(3, "0")}` : `${base}-${n}`;
+  newCaseDialog({ prefix: parent.prefix, num, type: parent.type, region: parent.region, parent });
+}
+
+/* ============ 會報統計 ============ */
+function renderStats() {
+  const y = $("#sYear").value, onlyOpen = $("#sState").value === "open";
+  const cases = DB.cases.filter(c => (!y || String(c.year) === y) && (!onlyOpen || !c.closed));
+  const recMap = {}; DB.records.forEach(r => { (recMap[r.caseId] = recMap[r.caseId] || []).push(r); });
+  const agg = keyFn => {
+    const m = new Map();
+    cases.forEach(c => {
+      const k = keyFn(c) || "（未填）";
+      const a = m.get(k) || { n: 0, open: 0, recs: 0, chars: 0, fine: 0, diff: 0, settle: 0, total: 0, est: 0, rec: 0 };
+      const rs = recMap[c.id] || [];
+      a.n++; if (!c.closed) a.open++;
+      a.recs += rs.length; a.chars += rs.reduce((s, r) => s + (r.status || "").length + (r.analysis || "").length, 0);
+      a.fine += +c.fine || 0; a.diff += +c.diff || 0; a.settle += +c.settle || 0; a.total += total(c); a.est += +c.estimate || 0; a.rec += +c.recovered || 0;
+      m.set(k, a);
+    });
+    return m;
+  };
+  const table = (title, m, order) => {
+    const keys = [...m.keys()].sort((a, b) => { const ia = order.indexOf(a), ib = order.indexOf(b); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || m.get(b).n - m.get(a).n; });
+    const T = { n: 0, open: 0, recs: 0, chars: 0, fine: 0, diff: 0, settle: 0, total: 0, est: 0, rec: 0 };
+    keys.forEach(k => Object.keys(T).forEach(f => T[f] += m.get(k)[f]));
+    const pct = (v, t) => t ? (v / t * 100).toFixed(1) + "%" : "—";
+    const maxC = Math.max(1, ...keys.map(k => m.get(k).chars));
+    return `<thead><tr><th>${title}</th><th class="r">案件數</th><th class="r">未結</th><th class="r">紀錄筆數</th><th class="r">筆數比例</th><th>紀錄字數比例</th>
+      <th class="r">罰款/賠償</th><th class="r">差額給付</th><th class="r">和解金/友好金</th><th class="r">總計</th><th class="r">可能賠償金</th><th class="r">收回</th></tr></thead>
+      <tbody>${keys.map(k => { const a = m.get(k); return `<tr style="cursor:default"><td><b>${esc(k)}</b></td><td class="r num">${a.n}</td><td class="r num">${a.open}</td><td class="r num">${a.recs}</td><td class="r num">${pct(a.recs, T.recs)}</td>
+        <td class="bar-cell"><i style="width:${(a.chars / maxC * 100).toFixed(1)}%"></i><span class="num">${pct(a.chars, T.chars)}</span></td>
+        <td class="r num">${money(a.fine)}</td><td class="r num">${money(a.diff)}</td><td class="r num">${money(a.settle)}</td><td class="r num"><b>${money(a.total)}</b></td><td class="r num">${money(a.est)}</td><td class="r num">${money(a.rec)}</td></tr>`; }).join("")}</tbody>
+      <tfoot><tr><td>合計</td><td class="r num">${T.n}</td><td class="r num">${T.open}</td><td class="r num">${T.recs}</td><td class="r num">100%</td><td class="num">100%</td>
+        <td class="r num">${money(T.fine)}</td><td class="r num">${money(T.diff)}</td><td class="r num">${money(T.settle)}</td><td class="r num">${money(T.total)}</td><td class="r num">${money(T.est)}</td><td class="r num">${money(T.rec)}</td></tr></tfoot>`;
+  };
+  $("#tblRegion").innerHTML = table("責任區劃", agg(c => c.region), DB.settings.regions);
+  $("#tblPrefix").innerHTML = table("案件類別", agg(c => c.prefix ? c.prefix + (prefixName(c.prefix) ? "｜" + prefixName(c.prefix) : "") : ""), DB.settings.prefixes.map(p => p.code + "｜" + p.name));
+  $("#statsStamp").textContent = `統計日期 ${isoToROC(todayISO())}｜${y ? y + " 年" : "全部年度"}｜${cases.length} 件`;
+}
+
+/* ============ 設定 ============ */
+function renderSettings() {
+  $("#prefixRows").innerHTML = DB.settings.prefixes.map((p, i) => `<tr><td><input data-pi="${i}" data-pk="code" value="${esc(p.code)}"></td><td><input data-pi="${i}" data-pk="name" value="${esc(p.name)}"></td>
+    <td><button class="btn sm danger" data-prm="${i}">移除</button></td></tr>`).join("");
+  $$("[data-pi]").forEach(inp => inp.onchange = () => { DB.settings.prefixes[inp.dataset.pi][inp.dataset.pk] = inp.value.trim(); markDirty(); fillFilterOptions(); });
+  $$("[data-prm]").forEach(b => b.onclick = () => {
+    const p = DB.settings.prefixes[b.dataset.prm]; const used = DB.cases.filter(c => c.prefix === p.code).length;
+    confirmBox("移除開頭字", `移除「${p.code}」？${used ? `\n目前有 ${used} 件案件使用這個開頭字，案件本身不受影響，只是新增案件時不會再出現。` : ""}`, "移除", () => { DB.settings.prefixes.splice(b.dataset.prm, 1); markDirty(); renderSettings(); fillFilterOptions(); });
+  });
+  $("#regionsTxt").value = DB.settings.regions.join("\n");
+  setFileStat(pending ? "busy" : "ok");
+}
+$("#addPrefix").onclick = () => { DB.settings.prefixes.push({ code: "", name: "" }); renderSettings(); const ins = $$("[data-pk=code]"); ins[ins.length - 1].focus(); };
+$("#regionsTxt").onchange = e => { DB.settings.regions = e.target.value.split(/\n+/).map(s => s.trim()).filter(Boolean); markDirty(); refreshAll(); };
+$("#btnReload").onclick = async () => { if (pending) { toast("還有修改正在存檔，請稍候"); return; } await startSession(); toast("已重新載入"); };
+$("#btnBackup").onclick = backup;
+$("#btnLogout").onclick = logout;
+
+/* ============ 匯出會報 Excel（內建產生 .xlsx，不需網路） ============ */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  files.forEach(f => {
+    const name = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const csize = central.reduce((s, a) => s + a.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+const xesc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+const colL = n => { let s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+/* 樣式編號：0 預設 1 標題列 2 文字 3 置中 4 金額 5 合計文字 6 合計金額 7 大標 8 已結案文字 9 已結案金額 10 已結案置中 */
+const XL_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0;(#,##0);&quot;-&quot;"/></numFmts>
+<fonts count="5">
+<font><sz val="10"/><name val="Microsoft JhengHei"/><family val="2"/></font>
+<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Microsoft JhengHei"/><family val="2"/></font>
+<font><b/><sz val="10"/><name val="Microsoft JhengHei"/><family val="2"/></font>
+<font><sz val="10"/><color rgb="FF6B7280"/><name val="Microsoft JhengHei"/><family val="2"/></font>
+<font><b/><sz val="14"/><color rgb="FF1F3A5F"/><name val="Microsoft JhengHei"/><family val="2"/></font>
+</fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF1F3A5F"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE9EEF5"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FF9AA5B1"/></left><right style="thin"><color rgb="FF9AA5B1"/></right><top style="thin"><color rgb="FF9AA5B1"/></top><bottom style="thin"><color rgb="FF9AA5B1"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="11">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="164" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="3" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+function sheetXML({ widths, rows, freeze, filter, paper, landscape, fitHeight, headH }) {
+  const ncol = widths.length;
+  const cols = widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("");
+  const data = rows.map((r, ri) => {
+    const cells = r.map((c, ci) => {
+      if (c === null || c === undefined) return "";
+      const o = typeof c === "object" ? c : { v: c }, ref = colL(ci + 1) + (ri + 1), st = o.s ? ` s="${o.s}"` : "";
+      if (o.v === null || o.v === undefined || o.v === "") return o.s ? `<c r="${ref}"${st}/>` : "";
+      if (typeof o.v === "number" && isFinite(o.v)) return `<c r="${ref}"${st}><v>${o.v}</v></c>`;
+      return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xesc(o.v)}</t></is></c>`;
+    }).join("");
+    return `<row r="${ri + 1}"${ri === 0 && headH ? ` ht="${headH}" customHeight="1"` : ""}>${cells}</row>`;
+  }).join("");
+  const pane = freeze ? `<pane ${freeze.x ? `xSplit="${freeze.x}" ` : ""}ySplit="${freeze.y}" topLeftCell="${colL((freeze.x || 0) + 1)}${freeze.y + 1}" activePane="bottomRight" state="frozen"/>` : "";
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/><cols>${cols}</cols><sheetData>${data}</sheetData>
+${filter ? `<autoFilter ref="A1:${colL(ncol)}${rows.length}"/>` : ""}
+<printOptions horizontalCentered="1"/>
+<pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>
+<pageSetup paperSize="${paper}" orientation="${landscape ? "landscape" : "portrait"}" fitToWidth="1" fitToHeight="${fitHeight ? 1 : 0}"/>
+<headerFooter><oddFooter>&amp;C第 &amp;P 頁 / 共 &amp;N 頁&amp;R列印 &amp;D</oddFooter></headerFooter>
+</worksheet>`;
+}
+function buildXlsx(sheets) {
+  const files = [
+    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>` },
+    { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${sheets.map((s, i) => `<sheet name="${xesc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets><definedNames>${sheets.map((s, i) => [
+      s.filter ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${xesc(s.name)}'!$A$1:$${colL(s.widths.length)}$${s.rows.length}</definedName>` : "",
+      s.titleRows ? `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${xesc(s.name)}'!$1:$1</definedName>` : ""].join("")).join("")}</definedNames></workbook>` },
+    { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+    { name: "xl/styles.xml", data: XL_STYLES },
+    ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXML(s) })),
+  ];
+  return zipStore(files);
+}
+const HISTORY = (id, key) => recordsOf(id).filter(r => r[key]).map(r => (r.date ? isoToROC(r.date) + " " : "") + r[key]).join("\n");
+function buildReport() {
+  const cols = [
+    ["法務收案編號", 8, c => c.prefix, "c"], ["", 8, c => c.num, "c"], ["收案日", 10, c => c.date, "c"], ["案件類型", 12, c => c.type], ["年度", 6, c => c.year ?? null, "c"],
+    ["案號", 16, c => c.govNo], ["股別/區域", 14, c => c.agency], ["書記官/聯繫", 14, c => c.clerk], ["原告/告訴人/甲方", 18, c => c.plaintiff],
+    ["被告/相對人/乙方", 18, c => c.defendant], ["責任區劃", 9, c => c.region, "c"], ["關係人(主責任人)", 14, c => c.resp1], ["次要關係人/(次責任)", 12, c => c.resp2],
+    ["訴之標的", 24, c => c.subject], ["訴訟狀態/法務狀態", 50, c => HISTORY(c.id, "status")], ["相關承辦", 12, c => c.handler],
+    ["備註", 50, c => HISTORY(c.id, "analysis")], ["結案與否", 8, c => c.closed ? "已結案" : "", "c"],
+    ["罰款/賠償", 11, c => c.fine, "m"], ["差額給付", 11, c => c.diff, "m"], ["和解金/友好金", 11, c => c.settle, "m"], ["總計", 11, c => hasMoney(c) ? total(c) : null, "m"],
+    ["可能賠償金/或罰款", 12, c => c.estimate, "m"], ["有無賠償", 10, c => c.hasComp], ["收回", 11, c => c.recovered, "m"],
+    ["下次追蹤日", 11, c => c.next ? isoToROC(c.next) : "", "c"], ["電子檔位置", 24, c => c.fileLink],
+  ];
+  const rows = [cols.map(([h]) => ({ v: h, s: 1 }))];
+  DB.cases.slice().sort(sortCases).forEach(c => {
+    rows.push(cols.map(([, , fn, t]) => {
+      let v = fn(c); if (v === undefined) v = null;
+      if (t === "m") return { v: v === null || v === "" ? null : Number(v), s: c.closed ? 9 : 4 };
+      return { v, s: t === "c" ? (c.closed ? 10 : 3) : (c.closed ? 8 : 2) };
+    }));
+  });
+  const main = { name: "法務室收案", widths: cols.map(c => c[1]), rows, freeze: { x: 2, y: 1 }, filter: true, titleRows: true, paper: 8, landscape: true, headH: 30 };
+
+  const hdr = ["責任區劃", "案件數", "未結", "紀錄筆數", "罰款/賠償", "差額給付", "和解金/友好金", "總計", "可能賠償金", "收回"];
+  const srows = [[{ v: `法務案件會報統計　${isoToROC(todayISO())}`, s: 7 }], [], hdr.map(h => ({ v: h, s: 1 }))];
+  const regs = [...new Set([...DB.settings.regions, ...DB.cases.map(c => c.region || "（未填）")])];
+  const T = new Array(9).fill(0);
+  regs.forEach(rg => {
+    const cs = DB.cases.filter(c => (c.region || "（未填）") === rg); if (!cs.length) return;
+    const ids = new Set(cs.map(c => c.id));
+    const vals = [cs.length, cs.filter(c => !c.closed).length, DB.records.filter(x => ids.has(x.caseId)).length,
+      cs.reduce((s, c) => s + (+c.fine || 0), 0), cs.reduce((s, c) => s + (+c.diff || 0), 0), cs.reduce((s, c) => s + (+c.settle || 0), 0),
+      cs.reduce((s, c) => s + total(c), 0), cs.reduce((s, c) => s + (+c.estimate || 0), 0), cs.reduce((s, c) => s + (+c.recovered || 0), 0)];
+    vals.forEach((v, i) => T[i] += v);
+    srows.push([{ v: rg, s: 2 }, ...vals.map((v, i) => ({ v, s: i < 3 ? 3 : 4 }))]);
+  });
+  srows.push([{ v: "合計", s: 5 }, ...T.map(v => ({ v, s: 6 }))]);
+  const stat = { name: "會報統計", widths: [14, 9, 9, 10, 13, 13, 13, 13, 13, 13], rows: srows, paper: 9, landscape: true, fitHeight: true };
+  return buildXlsx([main, stat]);
+}
+async function exportExcel() {
+  if (!DB) { $("#welcome").hidden = false; return; }
+  try {
+    const blob = buildReport();
+    const name = `法務案件會報_${isoToROC(todayISO()).replace(/\//g, "-")}.xlsx`;
+    showDlg(`<h2>匯出會報 Excel</h2><p>全部 ${DB.cases.length} 件案件，檔名「${esc(name)}」。</p>
+      <div class="acts"><button class="btn" id="exOne">存到 OneDrive／法務案件管理／會報</button><button class="btn pri" id="exDev">下載到這台裝置</button></div>`);
+    $("#exDev").onclick = () => { closeDlg(); saveBlob(blob, name); toast("已下載 " + name); };
+    $("#exOne").onclick = async () => {
+      closeDlg(); toast("上傳中…");
+      try { const f = await uploadToOneDrive(`${DIR}/會報/${name}`, blob); toast("已存到 OneDrive"); showDlg(`<h2>已存到 OneDrive</h2><p>OneDrive／法務案件管理／會報／${esc(name)}</p><div class="acts"><button class="btn" data-close>關閉</button><a class="btn pri" href="${esc(f.webUrl)}" target="_blank" rel="noopener">打開檔案</a></div>`); }
+      catch (e) { if (e instanceof NeedLogin) showLogin("請先登入"); else alertBox("存到 OneDrive 失敗", e.message); }
+    };
+  } catch (e) { alertBox("匯出失敗", e.message); }
+}
+
+/* ============ 事件 ============ */
+$$(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
+document.addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-case]"); if (tr) openCase(tr.dataset.case);
+});
+["#fQ", "#fPrefix", "#fRegion", "#fYear", "#fState"].forEach(s => $(s).addEventListener("input", renderList));
+["#sYear", "#sState"].forEach(s => $(s).addEventListener("change", renderStats));
+$("#btnNew").onclick = () => newCaseDialog();
+$("#btnExport").onclick = exportExcel;
+$("#btnPrint").onclick = () => {
+  if (currentView === "remind") $$("#remindGroups details").forEach(d => d.open = true);
+  window.print();
+};
+$("#wLogin").onclick = login;
+$("#wUpload").onclick = () => $("#wFile").click();
+$("#wFile").onchange = e => { const f = e.target.files[0]; if (f) uploadFirst(f); e.target.value = ""; };
+$("#wNew").onclick = () => confirmBox("建立空白資料檔", "會在 OneDrive／法務案件管理 建立一個沒有任何案件的資料檔。要搬入原本的案件，請改按「選擇資料檔上傳」。", "建立", async () => { DB = emptyDB(); eTag = null; pending = true; await writeNow(); if (!pending) useData(DB, eTag); });
+window.addEventListener("online", () => { if (pending) writeNow(); else checkExternal(); });
+setInterval(() => { if (pending && !saving) writeNow(); }, 30000);
+window.addEventListener("focus", checkExternal);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkExternal(); });
+window.addEventListener("beforeunload", e => { if (pending || saving) { e.preventDefault(); e.returnValue = ""; } });
+setInterval(() => { if (DB) updateBadge(); }, 60 * 60 * 1000);
+
+/* ============ 啟動 ============ */
+(async function init() {
+  $("#todayLbl").textContent = "今天 " + isoToROC(todayISO());
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  // 先顯示這台裝置上的暫存資料，讓畫面馬上可用
+  try { const c = lsGet(K.cache); if (c) { DB = JSON.parse(c); normalize(DB); eTag = lsGet(K.etag); pending = lsGet(K.pend) === "1"; refreshAll(); } } catch (e) {}
+  await handleRedirect().catch(e => alertBox("登入沒有完成", e.message));
+  if (!tok || !tok.access) { showLogin(); setFileStat("login"); return; }
+  await startSession();
+})();
+
+/* 測試用：直接載入資料（不寫檔） */
+window.__loadForTest = d => { normalize(d); DB = d; $("#welcome").hidden = true; refreshAll(); };
+window.__api = { show, openCase, renderStats };
+</script>
+</body>
+</html>
